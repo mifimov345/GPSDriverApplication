@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <View
+        android:id="@+id/your_view_id_1"
+        style="@style/ellipse_14_admin"
+        android:background="@drawable/ellipse_14_shape" />
+
+    <Button
+        android:id="@+id/exitButton"
+        style="@style/exit_button_round"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:text="@string/exit_to_main_menu_button"
+        android:textSize="30sp" />
+
+</LinearLayout>
