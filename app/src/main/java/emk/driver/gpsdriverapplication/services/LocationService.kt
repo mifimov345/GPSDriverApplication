@@ -17,7 +17,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-
+import emk.driver.gpsdriverapplication.LastLoginManager
 
 
 class LocationService : Service() {
@@ -112,10 +112,9 @@ class LocationService : Service() {
     private fun startLocationUpdates() {
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager?
 
-        // Check if location services are enabled
         if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
             try {
-                // Request location updates every 5 seconds
+                // время сбора инфы
                 locationManager?.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
                     1000,
@@ -123,7 +122,6 @@ class LocationService : Service() {
                     locationListener
                 )
             } catch (e: SecurityException) {
-                // Handle SecurityException (e.g., if permission is revoked at runtime)
                 Log.e("LocationService", "Error requesting location updates", e)
             }
         }
@@ -134,15 +132,16 @@ class LocationService : Service() {
     }
 
     private fun saveLocationToFile(location: String, speed: String, accelerometerData: String) {
+        val fileName = LastLoginManager.lastLogin + ".csv"
         try {
-            val file = File(filesDir, "location_log.csv")
+            val file = File(filesDir, fileName)
 
-            // Check if the file already exists, if not, create it
+            // проверка на наличие файла
             if (!file.exists()) {
                 file.createNewFile()
-                // Write CSV header if the file is newly created
+                // хедер файла
                 FileWriter(file, true).use { writer ->
-                    writer.append("Timestamp, Latitude, Longitude, Speed, AccelerometerData\n")
+                    writer.append(fileName)
                 }
             }
 

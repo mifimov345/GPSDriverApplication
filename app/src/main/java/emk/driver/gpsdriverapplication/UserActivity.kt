@@ -27,13 +27,30 @@ import com.google.android.gms.location.LocationServices
 import emk.driver.gpsdriverapplication.ui.theme.GPSDriverApplicationTheme
 import emk.driver.oversimplification.databinding.ActivityMainBinding
 import emk.driver.oversimplification.databinding.UserActivityMainBinding
+import emk.driver.gpsdriverapplication.services.LocationService
+
 
 class UserActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = UserActivityMainBinding.inflate(layoutInflater)
 
-        // Set content view using the binding's root view
         setContentView(binding.root)
+
+        val logoutButton: Button = binding.exitButton
+        logoutButton.setOnClickListener {
+            logout()
+        }
+
+
+    }
+
+    private fun logout() {
+        val userIntent = Intent(this, MainActivity::class.java)
+        startActivity(userIntent)
+        val serviceIntent = Intent(this, LocationService::class.java)
+        stopService(serviceIntent)
+        LastLoginManager.lastLogin = ""
+        finish()
     }
 }

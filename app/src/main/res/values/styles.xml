@@ -51,7 +51,7 @@
     <style name="exit_button_round">
         <item name="android:background">@drawable/exit_button_round</item>
         <item name="android:layout_marginStart">340dp</item>
-        <item name="android:layout_marginTop">-180dp</item>
+        <item name="android:layout_marginTop">-260dp</item>
         <item name="android:layout_width">363dp</item>
         <item name="android:layout_height">363dp</item>
     </style>
@@ -59,7 +59,7 @@
     <style name="exit_button_round_reverse">
         <item name="android:background">@drawable/exit_button_round</item>
         <item name="android:layout_marginStart">340dp</item>
-        <item name="android:layout_marginTop">480dp</item>
+        <item name="android:layout_marginTop">400dp</item>
         <item name="android:layout_width">363dp</item>
         <item name="android:layout_height">363dp</item>
     </style>

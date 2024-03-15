@@ -12,8 +12,8 @@
     <Button
         android:id="@+id/exitButton"
         style="@style/exit_button_round"
-        android:layout_width="60dp"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:text="@string/exit_to_main_menu_button"
         android:textSize="30sp" />
 

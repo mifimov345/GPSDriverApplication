@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
-    <solid android:color="#D60B2B"/>
+    <solid android:color="#D60B2B" />
+    <size android:width="363dp" android:height="363dp" /> <path
+    android:fillColor="#111111" android:pathData="M 50 50 L 313 313 M 313 50 L 50 313" />
 </shape>
