@@ -9,6 +9,8 @@
         style="@style/ellipse_14_admin"
         android:background="@drawable/ellipse_14_shape" />
 
+
+
     <Button
         android:id="@+id/exitButton"
         style="@style/exit_button_round"
@@ -16,5 +18,14 @@
         android:layout_height="50dp"
         android:text="@string/exit_to_main_menu_button"
         android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/pointsText"
+        style="@style/points_amount_admin"
+        android:layout_width="290dp"
+        android:layout_height="140dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="-250dp"
+        android:textSize="96sp" />
 
 </LinearLayout>

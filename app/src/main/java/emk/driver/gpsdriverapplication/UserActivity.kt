@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.content.Intent
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,12 +38,21 @@ class UserActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
+        val pointsText: TextView = binding.pointsText
+        pointsText.text = LastLoginManager.pointsAmount.toString()
+        LastLoginManager.setOnPointsAmountChangedListener { newPointsAmount ->
+            runOnUiThread {
+                pointsText.text = newPointsAmount.toString()
+            }
+        }
 
         val logoutButton: Button = binding.exitButton
         logoutButton.setOnClickListener {
             logout()
         }
 
+        val serviceIntent = Intent(this, LocationService::class.java)
+        startService(serviceIntent)
 
     }
 

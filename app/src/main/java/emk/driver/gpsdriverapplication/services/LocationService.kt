@@ -18,9 +18,68 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import emk.driver.gpsdriverapplication.LastLoginManager
+import retrofit2.Call
+import retrofit2.http.Body
+import retrofit2.http.POST
+import retrofit2.http.GET
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.http.Query
+import android.os.Handler
+import java.net.URLEncoder
+
+
 
 
 class LocationService : Service() {
+
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://10.0.2.2:5000/score/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val scoreService = retrofit.create(ScoreService::class.java)
+
+    data class ScoreRequest(val login: String)
+    data class ScoreResponse(val score: Int)
+
+    interface ScoreService {
+        @POST("/score")
+        fun getScore(@Body request: ScoreRequest): Call<ScoreResponse>
+    }
+
+
+    val changeToPoints = 1000
+
+    private fun fetchPointsAmount() {
+        val login = LastLoginManager.lastLogin
+        val request = ScoreRequest(login)
+        scoreService.getScore(request).enqueue(object : Callback<ScoreResponse> {
+            override fun onResponse(call: Call<ScoreResponse>, response: Response<ScoreResponse>) {
+                if (response.isSuccessful) {
+                    val score = response.body()?.score ?: 0
+                    LastLoginManager.pointsAmount = score
+                    LastLoginManager.updatePointsAmount(score)
+                    Log.d("LocationService", "Points amount updated: $score")
+                } else {
+                    Log.e("LocationService", "Failed to fetch points amount: ${response.code()}")
+                }
+            }
+
+            override fun onFailure(call: Call<ScoreResponse>, t: Throwable) {
+                Log.e("LocationService", "Error fetching points amount: ${t.message}", t)
+            }
+        })
+    }
+
+
+
+
+
+
 
     private fun getAccelerometerData(callback: (String) -> Unit) {
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -102,15 +161,31 @@ class LocationService : Service() {
     override fun onCreate() {
         super.onCreate()
         startLocationUpdates()
+        startScoreUpdates()
+    }
+
+    private fun startScoreUpdates(){
+        fetchPointsAmount()
+
+        var handler = Handler()
+        handler.postDelayed(object : Runnable {
+            override fun run() {
+                fetchPointsAmount()
+                handler.postDelayed(this, 5 * 60 * 1000) // Schedule next execution after 5 minutes
+            }
+        }, 0) // Execute immediately
     }
 
     override fun onDestroy() {
         super.onDestroy()
         stopLocationUpdates()
+        stopScoreUpdates()
     }
 
     private fun startLocationUpdates() {
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager?
+
+
 
         if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
             try {
@@ -129,6 +204,10 @@ class LocationService : Service() {
 
     private fun stopLocationUpdates() {
         locationManager?.removeUpdates(locationListener)
+    }
+
+    private fun stopScoreUpdates(){
+
     }
 
     private fun saveLocationToFile(location: String, speed: String, accelerometerData: String) {
