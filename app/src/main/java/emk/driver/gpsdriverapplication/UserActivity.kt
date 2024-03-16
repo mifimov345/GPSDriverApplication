@@ -37,6 +37,7 @@ class UserActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
+
         val logoutButton: Button = binding.exitButton
         logoutButton.setOnClickListener {
             logout()

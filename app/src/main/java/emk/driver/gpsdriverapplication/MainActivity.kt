@@ -12,8 +12,36 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import emk.driver.gpsdriverapplication.services.LocationService
 import emk.driver.oversimplification.databinding.ActivityMainBinding
+import retrofit2.Call
+import retrofit2.http.Body
+import retrofit2.http.POST
+import retrofit2.http.GET
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+
+
+data class LoginRequest(val login: String, val password: String)
+
+data class LoginResponse(val type: String)
+
+interface AuthService {
+    @POST("/login")
+    fun login(@Body request: LoginRequest): Call<LoginResponse>
+}
+
 
 class MainActivity : AppCompatActivity() {
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://10.0.2.2:5000/login/") // Replace this with your server URL
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+
+    private val authService = retrofit.create(AuthService::class.java)
+
 
     private val locationPermissionCode = 123
 
@@ -36,10 +64,10 @@ class MainActivity : AppCompatActivity() {
             validateLogin()
         }
 
-        if (LastLoginManager.lastLogin == "admin")
+/*        if (LastLoginManager.lastLogin == "admin")
             navigateToAdminActivity()
         if (LastLoginManager.lastLogin !== "user")
-            navigateToUserActivity()
+            navigateToUserActivity()*/
         //просьба врубить GPS
         checkLocationPermission()
     }
@@ -48,19 +76,33 @@ class MainActivity : AppCompatActivity() {
         val enteredUsername = loginEditText.text.toString()
         val enteredPassword = passwordEditText.text.toString()
 
-        when {
-            enteredUsername == "admin" && enteredPassword == "admin" -> {
-                validateGlobalLogin(enteredUsername)
-                navigateToAdminActivity()
+        val request = LoginRequest(enteredUsername, enteredPassword)
+
+        authService.login(request).enqueue(object : Callback<LoginResponse> {
+             override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                if (response.isSuccessful) {
+                    println("response: ${response}")
+                    val type = response.body()?.type
+                    if (type == "admin") {
+                        validateGlobalLogin(enteredUsername)
+                        navigateToAdminActivity()
+                    } else if (type == "user") {
+                        validateGlobalLogin(enteredUsername)
+                        navigateToUserActivity()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Invalid type", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(this@MainActivity, "Login failed", Toast.LENGTH_SHORT).show()
+                }
             }
-            enteredUsername == "user" && enteredPassword == "user" -> {
-                validateGlobalLogin(enteredUsername)
-                navigateToUserActivity()
+
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                Toast.makeText(this@MainActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                println("Error: ${t.message}")
+                t.printStackTrace()
             }
-            else -> {
-                Toast.makeText(this, "Неправильный логин или пароль", Toast.LENGTH_SHORT).show()
-            }
-        }
+        })
     }
 
     private fun navigateToAdminActivity() {
@@ -89,6 +131,8 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
+
+
 
     private fun validateGlobalLogin(login:String){
         LastLoginManager.lastLogin = login
