@@ -5,4 +5,5 @@
     <string name="password_text">Введите пароль</string>
     <string name="login_button_text">Войти</string>
     <string name="exit_to_main_menu_button">X</string>
+    <string name="create_user">Создать</string>
 </resources>

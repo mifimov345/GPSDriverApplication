@@ -10,22 +10,61 @@
         android:background="@drawable/ellipse_14_shape" />
 
 
-
-    <Button
-        android:id="@+id/exitButton"
-        style="@style/exit_button_round"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:text="@string/exit_to_main_menu_button"
-        android:textSize="30sp" />
-
     <TextView
         android:id="@+id/pointsText"
         style="@style/points_amount_admin"
         android:layout_width="290dp"
         android:layout_height="140dp"
         android:layout_marginStart="10dp"
-        android:layout_marginTop="-250dp"
+        android:layout_marginTop="-340dp"
         android:textSize="96sp" />
+
+    <EditText
+        android:id="@+id/editCreationLogin"
+        style="@style/Create_Input_Login"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="-400dp"
+        android:layout_marginLeft="10dp"
+        android:hint="@string/login_text"
+        android:background="@drawable/rectangle_outer"
+        android:ems="10"
+        android:inputType="textEmailAddress" />
+
+    <EditText
+        android:id="@+id/editCreationPassword"
+        style="@style/Create_Input_Password"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="10dp"
+        android:hint="@string/password_text"
+        android:background="@drawable/rectangle_outer"
+        android:ems="10"
+        android:inputType="textPassword" />
+
+    <Spinner
+        android:id="@+id/spinner_of_type"
+        android:layout_width="180dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="10dp"
+        android:background="@drawable/rectangle_outer" />
+
+    <Button
+        android:id="@+id/CreateButton"
+        android:layout_width="120dp"
+        android:layout_height="50dp"
+        android:layout_marginLeft="10dp"
+        android:text="@string/create_user" />
+
+    <Button
+        android:id="@+id/exitButton"
+        style="@style/exit_button_round_reverse"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="155dp"
+        android:text="@string/exit_to_main_menu_button"
+        android:textSize="30sp" />
 
 </LinearLayout>
