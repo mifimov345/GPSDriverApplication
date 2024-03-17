@@ -29,9 +29,29 @@ import retrofit2.Retrofit
 import retrofit2.http.Query
 import android.os.Handler
 import java.net.URLEncoder
+import android.Manifest
+import android.content.pm.PackageManager
+import java.util.*
+import kotlin.collections.HashMap
+import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import com.google.gson.reflect.TypeToken
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
+import java.util.concurrent.CompletableFuture
 
+data class OSMResponse(
+    @SerializedName("elements") val elements: List<Element>
+)
 
+data class Element(
+    @SerializedName("tags") val tags: Tags?
+)
 
+data class Tags(
+    @SerializedName("maxspeed") val maxspeed: String?
+)
 
 class LocationService : Service() {
 
@@ -76,7 +96,65 @@ class LocationService : Service() {
     }
 
 
+    private fun parseSpeedLimitFromOSM(responseBody: String?): Int {
+        if (responseBody == null) return 50 // Возвращаем значение по умолчанию, если тело ответа пустое
 
+        return try {
+            val gson = Gson()
+            val responseType = object : TypeToken<OSMResponse>() {}.type
+            val osmResponse = gson.fromJson<OSMResponse>(responseBody, responseType)
+
+            // Найдем первый элемент с тегом maxspeed и вернем его значение
+            osmResponse.elements
+                .asSequence()
+                .mapNotNull { it.tags?.maxspeed }
+                .mapNotNull { it.toIntOrNull() }
+                .firstOrNull() ?: 50 // Если не найден, вернем значение по умолчанию
+        } catch (e: Exception) {
+            Log.e("LocationService", "Error parsing speed limit from OSM response", e)
+            50 // Возвращаем значение по умолчанию в случае ошибок разбора
+        }
+    }
+
+    private fun fetchSpeedLimitForLocation(location: Location): CompletableFuture<Int>{
+        val future = CompletableFuture<Int>()
+
+        val latitude = location.latitude
+        val longitude = location.longitude
+        val radius = 150
+
+        val query = """
+            [out:json];
+            way(around:$radius,$latitude,$longitude)[maxspeed];
+            (._;>;);
+            out;
+        """.trimIndent()
+
+        val encodedQuery = URLEncoder.encode(query, "UTF-8")
+        val overpassUrl = "http://overpass-api.de/api/interpreter?data=$encodedQuery"
+
+        val client = OkHttpClient()
+        val request = Request.Builder().url(overpassUrl).build()
+
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                Log.e("LocationService", "Error fetching speed limit: ${e.message}", e)
+                future.complete(50)
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                if (response.isSuccessful) {
+                    val responseBody = response.body()?.string()
+                    val speedLimit = parseSpeedLimitFromOSM(responseBody)
+                    future.complete(speedLimit)
+                } else {
+                    Log.e("LocationService", "Failed to fetch speed limit: ${response.code()}")
+                    future.complete(50)
+                }
+            }
+        })
+        return future
+    }
 
 
 
@@ -111,6 +189,12 @@ class LocationService : Service() {
             val latitude = location.latitude
             val longitude = location.longitude
             val speed = location.speed
+
+            fetchSpeedLimitForLocation(location).thenAccept {speedLimit ->
+                val limit: Int = speedLimit
+
+            }
+
 
             // Get accelerometer parameters
             getAccelerometerData { accelerometerData ->
