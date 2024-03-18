@@ -64,6 +64,7 @@ class AdminActivity : AppCompatActivity() {
     private lateinit var editCreationPassword : EditText
     private lateinit var spinner_of_type : Spinner
     private lateinit var CreateButton : Button
+    private lateinit var statusButton: Button
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = AdminActivityMainBinding.inflate(layoutInflater)
@@ -74,6 +75,11 @@ class AdminActivity : AppCompatActivity() {
         editCreationPassword = binding.editCreationPassword
         spinner_of_type = binding.spinnerOfType
         CreateButton = binding.CreateButton
+        statusButton = binding.stopStartButton
+
+        statusButton.setOnClickListener(){
+            changeStatus()
+        }
 
         val items = arrayOf("User","Admin")
 
@@ -104,6 +110,19 @@ class AdminActivity : AppCompatActivity() {
 
         val serviceIntent = Intent(this, LocationService::class.java)
         startService(serviceIntent)
+    }
+
+
+    private fun changeStatus(){
+        if (statusButton.text == "Остановить трекинг"){
+            val serviceIntent = Intent(this, LocationService::class.java)
+            stopService(serviceIntent)
+            statusButton.text = "Начать трекинг"
+        }else{
+            val serviceIntent = Intent(this, LocationService::class.java)
+            startService(serviceIntent)
+            statusButton.text = "Остановить трекинг"
+        }
     }
 
     private fun createUser(){

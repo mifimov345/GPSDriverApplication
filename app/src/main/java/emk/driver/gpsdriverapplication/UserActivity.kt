@@ -32,11 +32,17 @@ import emk.driver.gpsdriverapplication.services.LocationService
 
 
 class UserActivity : AppCompatActivity() {
+    private lateinit var statusButton: Button
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = UserActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
+
+        statusButton = binding.stopStartButton
+        statusButton.setOnClickListener(){
+            changeStatus()
+        }
 
         val pointsText: TextView = binding.pointsText
         pointsText.text = LastLoginManager.pointsAmount.toString()
@@ -54,6 +60,18 @@ class UserActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, LocationService::class.java)
         startService(serviceIntent)
 
+    }
+
+    private fun changeStatus(){
+        if (statusButton.text == "Остановить трекинг"){
+            val serviceIntent = Intent(this, LocationService::class.java)
+            stopService(serviceIntent)
+            statusButton.text = "Начать трекинг"
+        }else{
+            val serviceIntent = Intent(this, LocationService::class.java)
+            startService(serviceIntent)
+            statusButton.text = "Остановить трекинг"
+        }
     }
 
     private fun logout() {

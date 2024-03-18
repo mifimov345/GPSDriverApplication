@@ -97,28 +97,25 @@ class LocationService : Service() {
 
 
     private fun parseSpeedLimitFromOSM(responseBody: String?): Int {
-        if (responseBody == null) return 50 // Возвращаем значение по умолчанию, если тело ответа пустое
+        if (responseBody == null) return 50
 
         return try {
             val gson = Gson()
             val responseType = object : TypeToken<OSMResponse>() {}.type
             val osmResponse = gson.fromJson<OSMResponse>(responseBody, responseType)
 
-            // Найдем первый элемент с тегом maxspeed и вернем его значение
             osmResponse.elements
                 .asSequence()
                 .mapNotNull { it.tags?.maxspeed }
                 .mapNotNull { it.toIntOrNull() }
-                .firstOrNull() ?: 50 // Если не найден, вернем значение по умолчанию
+                .firstOrNull() ?: 50 //
         } catch (e: Exception) {
             Log.e("LocationService", "Error parsing speed limit from OSM response", e)
-            50 // Возвращаем значение по умолчанию в случае ошибок разбора
+            50
         }
     }
 
-    private fun fetchSpeedLimitForLocation(location: Location): CompletableFuture<Int>{
-        val future = CompletableFuture<Int>()
-
+    private fun fetchSpeedLimitForLocation(location: Location, callback: (Int) -> Unit){
         val latitude = location.latitude
         val longitude = location.longitude
         val radius = 150
@@ -138,23 +135,20 @@ class LocationService : Service() {
 
         client.newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: IOException) {
-                Log.e("LocationService", "Error fetching speed limit: ${e.message}", e)
-                future.complete(50)
+                callback(50)
             }
 
             override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body()?.string()
                     val speedLimit = parseSpeedLimitFromOSM(responseBody)
-                    future.complete(speedLimit)
+                    callback(speedLimit)
                 } else {
-                    Log.e("LocationService", "Failed to fetch speed limit: ${response.code()}")
-                    future.complete(50)
+                    callback(50)
                 }
             }
         })
-        return future
-    }
+}
 
 
 
@@ -185,15 +179,28 @@ class LocationService : Service() {
 
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
+            val temporalpoints = LastLoginManager.pointsAmount
             // Handle location updates
             val latitude = location.latitude
             val longitude = location.longitude
             val speed = location.speed
 
-            fetchSpeedLimitForLocation(location).thenAccept {speedLimit ->
-                val limit: Int = speedLimit
+            fetchSpeedLimitForLocation(location) { speedLimit ->
+                // Проверить, превышает ли скорость пользователя лимит скорости
+                val isSpeeding = location.speed > speedLimit
 
+                // Вывести результат в лог или обработать его соответствующим образом
+                if (isSpeeding) {
+                    Log.d("LocationService", "Exceeded speed limit: ${location.speed} km/h")
+                } else {
+                    Log.d("LocationService", "Within speed limit: ${location.speed} km/h")
+                }
             }
+
+
+
+
+
 
 
             // Get accelerometer parameters
