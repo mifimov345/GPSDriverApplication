@@ -9,12 +9,32 @@
         style="@style/ellipse_14"
         android:background="@drawable/ellipse_14_shape" />
 
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/mapView"
+        android:layout_width="240dp"
+        android:layout_height="200dp"
+        android:layout_marginLeft="50dp"
+        android:contentDescription="@string/turn_GPS"
+        />
+
+    <TextView
+        android:id="@+id/isExceeded"
+        android:background="@color/actualGreen"
+        android:layout_width="240dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="50dp"
+        android:layout_marginBottom="-10dp"
+        android:text="@string/exceed_limit"
+        android:textSize="20sp"
+        />
 
     <TextView
         android:id="@+id/pointsText"
         style="@style/points_amount_user"
         android:layout_width="290dp"
-        android:layout_height="140dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="20dp"
         android:textSize="96sp" />
 
     <Button
@@ -23,7 +43,8 @@
         android:layout_width="180dp"
         android:layout_height="70dp"
         android:layout_marginLeft="120dp"
-        android:layout_marginTop="110dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="70dp"
         android:text = "@string/status_button"
         />
 
@@ -32,7 +53,7 @@
         style="@style/exit_button_round_reverse"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:layout_marginTop="90dp"
+        android:layout_marginTop="-60dp"
         android:text="@string/exit_to_main_menu_button"
         android:textSize="30sp" />
 

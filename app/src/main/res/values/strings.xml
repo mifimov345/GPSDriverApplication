@@ -7,4 +7,6 @@
     <string name="exit_to_main_menu_button">X</string>
     <string name="create_user">Создать</string>
     <string name="status_button">Остановить трекинг</string>
+    <string name="exceed_limit">Скорость не превышена!</string>
+    <string name="turn_GPS">Включите GPS</string>
 </resources>

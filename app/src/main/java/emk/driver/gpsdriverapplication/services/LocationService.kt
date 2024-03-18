@@ -186,13 +186,13 @@ class LocationService : Service() {
             val speed = location.speed
 
             fetchSpeedLimitForLocation(location) { speedLimit ->
-                // Проверить, превышает ли скорость пользователя лимит скорости
-                val isSpeeding = location.speed > speedLimit
+                val isSpeeding = location.speed > (speedLimit + 20)
 
-                // Вывести результат в лог или обработать его соответствующим образом
                 if (isSpeeding) {
+                    LastLoginManager.updateavaliability("Скорость превышена!")
                     Log.d("LocationService", "Exceeded speed limit: ${location.speed} km/h")
                 } else {
+                    LastLoginManager.updateavaliability("Скорость не превышена!")
                     Log.d("LocationService", "Within speed limit: ${location.speed} km/h")
                 }
             }

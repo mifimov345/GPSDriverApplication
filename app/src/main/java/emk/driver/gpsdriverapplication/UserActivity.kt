@@ -29,15 +29,43 @@ import emk.driver.gpsdriverapplication.ui.theme.GPSDriverApplicationTheme
 import emk.driver.oversimplification.databinding.ActivityMainBinding
 import emk.driver.oversimplification.databinding.UserActivityMainBinding
 import emk.driver.gpsdriverapplication.services.LocationService
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+import android.os.Looper
 
 
 class UserActivity : AppCompatActivity() {
     private lateinit var statusButton: Button
+    private lateinit var googleMap: GoogleMap
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var mapFragment: SupportMapFragment
+    private lateinit var isExceeded: TextView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = UserActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
+
+        val isExceeded = binding.isExceeded
+        LastLoginManager.setEnableListener { newExceedVariable ->
+            runOnUiThread{
+                isExceeded.text = newExceedVariable.toString()
+            }
+        }
+
+        val mapFragment = binding.mapView
+        mapFragment.getMapAsync{ map ->
+            googleMap = map
+            setupMap()
+        }
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         statusButton = binding.stopStartButton
         statusButton.setOnClickListener(){
@@ -60,6 +88,46 @@ class UserActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, LocationService::class.java)
         startService(serviceIntent)
 
+    }
+
+    private fun setupMap() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+        }
+        googleMap.isMyLocationEnabled = true
+
+        // Request location updates
+        fusedLocationClient.requestLocationUpdates(
+            LocationRequest.create().apply {
+                interval = 10000
+                fastestInterval = 5000
+                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            },
+            locationCallback,
+            Looper.getMainLooper()
+        )
+    }
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            super.onLocationResult(locationResult)
+            val location = locationResult.lastLocation
+            location?.let {
+                val currentLatLng = LatLng(it.latitude, it.longitude)
+                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+
+                // Add marker
+                googleMap.clear()
+                googleMap.addMarker(MarkerOptions().position(currentLatLng).title("Current Location"))
+            } ?: run {
+            }
+        }
     }
 
     private fun changeStatus(){
