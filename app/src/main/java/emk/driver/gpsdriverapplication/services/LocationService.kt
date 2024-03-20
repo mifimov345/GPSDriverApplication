@@ -31,7 +31,6 @@ import android.os.Handler
 import java.net.URLEncoder
 import android.Manifest
 import android.content.pm.PackageManager
-import java.util.*
 import kotlin.collections.HashMap
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
@@ -66,9 +65,24 @@ class LocationService : Service() {
     data class ScoreRequest(val login: String)
     data class ScoreResponse(val score: Int)
 
+    private val retrofit2 = Retrofit.Builder()
+        .baseUrl("http://10.0.2.2:5000/editscore/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val scoreChangeService = retrofit.create(ChangeScoreService::class.java)
+
+    data class ChangeScoreRequest(val login: String, val score: Int)
+    data class ChangeScoreResponse(val score: String)
+
     interface ScoreService {
         @POST("/score")
         fun getScore(@Body request: ScoreRequest): Call<ScoreResponse>
+    }
+
+    interface ChangeScoreService {
+        @POST("/editscore")
+        fun getChangeScore(@Body request: ChangeScoreRequest): Call<ChangeScoreResponse>
     }
 
 
@@ -168,6 +182,10 @@ class LocationService : Service() {
                     accelerometerValues[1] = event.values[1]
                     accelerometerValues[2] = event.values[2]
                     sensorManager.unregisterListener(this)
+                    rotX = accelerometerValues[0].toInt()
+                    rotY = accelerometerValues[1].toInt()
+                    rotZ = accelerometerValues[2].toInt()
+
                     callback("X: ${accelerometerValues[0]}, Y: ${accelerometerValues[1]}, Z: ${accelerometerValues[2]}")
                 }
             }
@@ -176,14 +194,20 @@ class LocationService : Service() {
         sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
     }
     private var locationManager: LocationManager? = null
-
+    private var isExceeded: Boolean = false
+    private var timeLimited: Int = 0
+    private var timeOkay: Int = 0
+    private var telephoneTime: Int = 0
+    private var rotX = 0
+    private var rotY = 0
+    private var rotZ = 0
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            val temporalpoints = LastLoginManager.pointsAmount
-            // Handle location updates
+            var temporalpoints = LastLoginManager.pointsAmount
             val latitude = location.latitude
             val longitude = location.longitude
             val speed = location.speed
+
 
             fetchSpeedLimitForLocation(location) { speedLimit ->
                 val isSpeeding = location.speed > (speedLimit + 20)
@@ -191,26 +215,41 @@ class LocationService : Service() {
                 if (isSpeeding) {
                     LastLoginManager.updateavaliability("Скорость превышена!")
                     Log.d("LocationService", "Exceeded speed limit: ${location.speed} km/h")
+                    isExceeded = true
+                    timeLimited += 1
+                    timeOkay = 0
                 } else {
                     LastLoginManager.updateavaliability("Скорость не превышена!")
                     Log.d("LocationService", "Within speed limit: ${location.speed} km/h")
+                    isExceeded = false
+                    timeLimited = 0
+                    timeOkay += 1
                 }
             }
+            if (timeLimited > 59){
+                temporalpoints -= 65
+            }
+            if (timeOkay > 43200){
+                temporalpoints += 6
+            }
 
 
-
-
-
-
-
-            // Get accelerometer parameters
             getAccelerometerData { accelerometerData ->
-                // Use latitude, longitude, orientation, and accelerometer data as needed
                 Log.d("LocationService", "Location Updated: $latitude, $longitude, $speed, Accelerometer: $accelerometerData")
 
-                // Save location to file
                 saveLocationToFile("$latitude, $longitude", "$speed", "$accelerometerData")
             }
+            if ((location.speed > 35 && 11 < rotZ && rotZ< 70 && -23 < rotY && rotY < 15)|| (location.speed > 40 && -69 < rotZ && rotZ< 24 && -47 < rotY && rotY < 43)){
+                telephoneTime += 1
+                if (telephoneTime > 180){
+                    temporalpoints -= 10
+                }
+            }
+            else{
+                telephoneTime = 0
+            }
+
+            changePointsAmount(temporalpoints)
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -220,28 +259,29 @@ class LocationService : Service() {
         override fun onProviderDisabled(provider: String) {}
     }
 
-    private fun getAccelerometerData(): String {
-        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-        val accelerometerValues = FloatArray(3)
+    private fun changePointsAmount(points: Int){
+        val login = LastLoginManager.lastLogin
+        val changeScore = points
 
-        sensorManager.registerListener(object : SensorEventListener {
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-
-            override fun onSensorChanged(event: SensorEvent?) {
-                if (event != null) {
-                    accelerometerValues[0] = event.values[0]
-                    accelerometerValues[1] = event.values[1]
-                    accelerometerValues[2] = event.values[2]
+        val request = ChangeScoreRequest(login, changeScore)
+        scoreChangeService.getChangeScore(request).enqueue(object: Callback<ChangeScoreResponse>{
+            override fun onResponse(call: Call<ChangeScoreResponse>, response: Response<ChangeScoreResponse>){
+                if (response.isSuccessful){
+                    LastLoginManager.pointsAmount = changeScore
+                    LastLoginManager.updatePointsAmount(changeScore)
+                    Log.d("ChangeScoreService","Points amount updated $changeScore")
+                }
+                else{
+                    Log.e("ChangeScoreService","Failed to update points $changeScore")
                 }
             }
-        }, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
 
-        return "X: ${accelerometerValues[0]}, Y: ${accelerometerValues[1]}, Z: ${accelerometerValues[2]}"
+            override fun onFailure(call: Call<ChangeScoreResponse>, t: Throwable) {
+                Log.e("ChangeScoreService", "Error changing points: ${t.message}", t)
+            }
+        })
     }
-
-
 
 
 
@@ -262,9 +302,9 @@ class LocationService : Service() {
         handler.postDelayed(object : Runnable {
             override fun run() {
                 fetchPointsAmount()
-                handler.postDelayed(this, 5 * 60 * 1000) // Schedule next execution after 5 minutes
+                handler.postDelayed(this, 5 * 60 * 1000)
             }
-        }, 0) // Execute immediately
+        }, 0)
     }
 
     override fun onDestroy() {
