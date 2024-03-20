@@ -69,7 +69,7 @@ class UserActivity : AppCompatActivity() {
 
         statusButton = binding.stopStartButton
         statusButton.setOnClickListener(){
-            changeStatus()
+            changeStatusButton()
         }
 
         val pointsText: TextView = binding.pointsText
@@ -91,27 +91,17 @@ class UserActivity : AppCompatActivity() {
     }
 
     private fun setupMap() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            googleMap.isMyLocationEnabled = true
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                location?.let {
+                    val currentLatLng = LatLng(it.latitude, it.longitude)
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+                }
+            }
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
         }
-        googleMap.isMyLocationEnabled = true
-
-        // Request location updates
-        fusedLocationClient.requestLocationUpdates(
-            LocationRequest.create().apply {
-                interval = 10000
-                fastestInterval = 5000
-                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            },
-            locationCallback,
-            Looper.getMainLooper()
-        )
     }
 
     private val locationCallback = object : LocationCallback() {
@@ -121,16 +111,29 @@ class UserActivity : AppCompatActivity() {
             location?.let {
                 val currentLatLng = LatLng(it.latitude, it.longitude)
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
-
-                // Add marker
                 googleMap.clear()
                 googleMap.addMarker(MarkerOptions().position(currentLatLng).title("Current Location"))
-            } ?: run {
             }
         }
     }
 
-    private fun changeStatus(){
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                setupMap()
+            } else {
+                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun changeStatusButton(){
         if (statusButton.text == "Остановить трекинг"){
             val serviceIntent = Intent(this, LocationService::class.java)
             stopService(serviceIntent)

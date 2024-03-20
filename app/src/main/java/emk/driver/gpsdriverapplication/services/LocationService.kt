@@ -227,10 +227,14 @@ class LocationService : Service() {
                 }
             }
             if (timeLimited > 59){
-                temporalpoints -= 65
+                if (temporalpoints - 65 > 0){
+                    temporalpoints -= 65
+                }
             }
             if (timeOkay > 43200){
-                temporalpoints += 6
+                if (temporalpoints + 6 <= 1000){
+                    temporalpoints += 6
+                }
             }
 
 
@@ -242,7 +246,9 @@ class LocationService : Service() {
             if ((location.speed > 35 && 11 < rotZ && rotZ< 70 && -23 < rotY && rotY < 15)|| (location.speed > 40 && -69 < rotZ && rotZ< 24 && -47 < rotY && rotY < 43)){
                 telephoneTime += 1
                 if (telephoneTime > 180){
-                    temporalpoints -= 10
+                    if (temporalpoints - 10 > 0){
+                        temporalpoints -= 10
+                    }
                 }
             }
             else{
