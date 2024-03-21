@@ -64,10 +64,6 @@ class MainActivity : AppCompatActivity() {
             validateLogin()
         }
 
-/*        if (LastLoginManager.lastLogin == "admin")
-            navigateToAdminActivity()
-        if (LastLoginManager.lastLogin !== "user")
-            navigateToUserActivity()*/
         //просьба врубить GPS
         checkLocationPermission()
     }
