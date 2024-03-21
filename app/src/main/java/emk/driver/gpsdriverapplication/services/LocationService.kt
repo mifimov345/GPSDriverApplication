@@ -33,6 +33,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import kotlin.collections.HashMap
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import okhttp3.OkHttpClient
@@ -54,6 +55,11 @@ data class Tags(
 
 class LocationService : Service() {
 
+    companion object {
+        const val BROADCAST_ACTION = "emk.driver.gpsdriverapplication.services.LOCATION_UPDATE"
+        const val EXTRA_LOCATION = "extra_location"
+    }
+
 
     private val retrofit = Retrofit.Builder()
         .baseUrl("http://10.0.2.2:5000/score/")
@@ -65,12 +71,14 @@ class LocationService : Service() {
     data class ScoreRequest(val login: String)
     data class ScoreResponse(val score: Int)
 
+    val gson = GsonBuilder().setLenient().create()
+
     private val retrofit2 = Retrofit.Builder()
         .baseUrl("http://10.0.2.2:5000/editscore/")
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
-    private val scoreChangeService = retrofit.create(ChangeScoreService::class.java)
+    private val scoreChangeService = retrofit2.create(ChangeScoreService::class.java)
 
     data class ChangeScoreRequest(val login: String, val score: Int)
     data class ChangeScoreResponse(val score: String)
@@ -85,9 +93,14 @@ class LocationService : Service() {
         fun getChangeScore(@Body request: ChangeScoreRequest): Call<ChangeScoreResponse>
     }
 
-
-    val changeToPoints = 1000
-
+    private var locationManager: LocationManager? = null
+    private var isExceeded: Boolean = false
+    private var timeLimited: Int = 0
+    private var timeOkay: Int = 0
+    private var telephoneTime: Int = 0
+    private var rotX = 0
+    private var rotY = 0
+    private var rotZ = 0
     private fun fetchPointsAmount() {
         val login = LastLoginManager.lastLogin
         val request = ScoreRequest(login)
@@ -164,9 +177,6 @@ class LocationService : Service() {
         })
 }
 
-
-
-
     private fun getAccelerometerData(callback: (String) -> Unit) {
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -193,21 +203,19 @@ class LocationService : Service() {
 
         sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
     }
-    private var locationManager: LocationManager? = null
-    private var isExceeded: Boolean = false
-    private var timeLimited: Int = 0
-    private var timeOkay: Int = 0
-    private var telephoneTime: Int = 0
-    private var rotX = 0
-    private var rotY = 0
-    private var rotZ = 0
+
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
             var temporalpoints = LastLoginManager.pointsAmount
             val latitude = location.latitude
             val longitude = location.longitude
             val speed = location.speed
+            LastLoginManager.currentLocation = location
+            LastLoginManager.updateLocation(location)
 
+            val intent = Intent(BROADCAST_ACTION)
+            intent.putExtra(EXTRA_LOCATION, location)
+            sendBroadcast(intent)
 
             fetchSpeedLimitForLocation(location) { speedLimit ->
                 val isSpeeding = location.speed > (speedLimit + 20)
@@ -289,18 +297,6 @@ class LocationService : Service() {
         })
     }
 
-
-
-    override fun onBind(intent: Intent): IBinder? {
-        return null
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        startLocationUpdates()
-        startScoreUpdates()
-    }
-
     private fun startScoreUpdates(){
         fetchPointsAmount()
 
@@ -311,12 +307,6 @@ class LocationService : Service() {
                 handler.postDelayed(this, 5 * 60 * 1000)
             }
         }, 0)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopLocationUpdates()
-        stopScoreUpdates()
     }
 
     private fun startLocationUpdates() {
@@ -370,5 +360,19 @@ class LocationService : Service() {
         }
     }
 
+    override fun onBind(intent: Intent): IBinder? {
+        return null
+    }
 
+    override fun onCreate() {
+        super.onCreate()
+        startLocationUpdates()
+        startScoreUpdates()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopLocationUpdates()
+        stopScoreUpdates()
+    }
 }

@@ -9,7 +9,7 @@
         style="@style/ellipse_14"
         android:background="@drawable/ellipse_14_shape" />
 
-    <com.google.android.gms.maps.MapView
+    <org.osmdroid.views.MapView
         android:id="@+id/mapView"
         android:layout_width="240dp"
         android:layout_height="200dp"

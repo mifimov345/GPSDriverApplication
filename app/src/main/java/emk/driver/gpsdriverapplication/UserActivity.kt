@@ -39,14 +39,23 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import android.os.Looper
-
+import org.osmdroid. config. Configuration
+import org.osmdroid.util.GeoPoint
+import org.osmdroid. views.MapView
+import org.osmdroid. tileprovider.tilesource. TileSourceFactory
+import org.osmdroid. views.overlay.Marker
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 
 class UserActivity : AppCompatActivity() {
     private lateinit var statusButton: Button
-    private lateinit var googleMap: GoogleMap
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var mapFragment: SupportMapFragment
     private lateinit var isExceeded: TextView
+    private lateinit var mapView: MapView
+    private lateinit var userMarker: Marker
+
+    private val locationPermissionCode = 1
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = UserActivityMainBinding.inflate(layoutInflater)
@@ -60,12 +69,29 @@ class UserActivity : AppCompatActivity() {
             }
         }
 
-        val mapFragment = binding.mapView
-        mapFragment.getMapAsync{ map ->
-            googleMap = map
+
+        mapView = binding.mapView.apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setBuiltInZoomControls(true)
+            setMultiTouchControls(true)
+        }
+        val mapController = mapView.controller
+        mapController.setZoom(15.0)
+        userMarker = Marker(mapView)
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), locationPermissionCode)
+        } else {
             setupMap()
         }
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        userMarker = Marker(mapView)
+        mapView.overlays.add(userMarker)
+        LastLoginManager.setOnLocationIsChangedListener { Location ->
+            runOnUiThread{
+                updateMarker(Location)
+            }
+        }
 
         statusButton = binding.stopStartButton
         statusButton.setOnClickListener(){
@@ -90,47 +116,44 @@ class UserActivity : AppCompatActivity() {
 
     }
 
+
+
+
     private fun setupMap() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            googleMap.isMyLocationEnabled = true
-            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                location?.let {
-                    val currentLatLng = LatLng(it.latitude, it.longitude)
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
-                }
-            }
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
-        }
-    }
-
-    private val locationCallback = object : LocationCallback() {
-        override fun onLocationResult(locationResult: LocationResult) {
-            super.onLocationResult(locationResult)
-            val location = locationResult.lastLocation
-            location?.let {
-                val currentLatLng = LatLng(it.latitude, it.longitude)
-                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
-                googleMap.clear()
-                googleMap.addMarker(MarkerOptions().position(currentLatLng).title("Current Location"))
+        userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        mapView.overlays.add(userMarker)
+        LastLoginManager.setOnLocationIsChangedListener { location ->
+            runOnUiThread {
+                updateMarker(location)
             }
         }
     }
 
-    companion object {
-        private const val LOCATION_PERMISSION_REQUEST_CODE = 1
+    private fun updateMarker(location: Location) {
+        val userLocation = GeoPoint(location.latitude, location.longitude)
+        userMarker.position = userLocation
+        mapView.controller.setCenter(userLocation)
+        mapView.invalidate()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Configuration.getInstance().load(this, getSharedPreferences("prefs", Context.MODE_PRIVATE))
+        mapView.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mapView.onPause()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                setupMap()
-            } else {
-                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
-            }
+        if (requestCode == locationPermissionCode && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            setupMap()
         }
     }
+
 
 
     private fun changeStatusButton(){
