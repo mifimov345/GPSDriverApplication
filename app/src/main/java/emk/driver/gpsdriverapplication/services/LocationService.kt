@@ -313,7 +313,7 @@ class LocationService : Service() {
         handler.postDelayed(object : Runnable {
             override fun run() {
                 fetchPointsAmount()
-                handler.postDelayed(this, 5 * 60 * 1000)
+                handler.postDelayed(this, 5000)
             }
         }, 0)
     }
