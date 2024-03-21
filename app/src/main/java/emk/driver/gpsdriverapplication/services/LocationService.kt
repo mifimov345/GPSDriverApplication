@@ -238,10 +238,16 @@ class LocationService : Service() {
                 if (temporalpoints - 65 > 0){
                     temporalpoints -= 65
                 }
+                else{
+                    temporalpoints = 0
+                }
             }
             if (timeOkay > 43200){
                 if (temporalpoints + 6 <= 1000){
                     temporalpoints += 6
+                }
+                else{
+                    temporalpoints = 1000
                 }
             }
 
@@ -256,6 +262,9 @@ class LocationService : Service() {
                 if (telephoneTime > 180){
                     if (temporalpoints - 10 > 0){
                         temporalpoints -= 10
+                    }
+                    else{
+                        temporalpoints = 0
                     }
                 }
             }
