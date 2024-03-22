@@ -71,6 +71,11 @@ class LocationService : Service() {
     data class ScoreRequest(val login: String)
     data class ScoreResponse(val score: Int)
 
+    interface ScoreService {
+        @POST("/score")
+        fun getScore(@Body request: ScoreRequest): Call<ScoreResponse>
+    }
+
     val gson = GsonBuilder().setLenient().create()
 
     private val retrofit2 = Retrofit.Builder()
@@ -82,11 +87,6 @@ class LocationService : Service() {
 
     data class ChangeScoreRequest(val login: String, val score: Int)
     data class ChangeScoreResponse(val score: String)
-
-    interface ScoreService {
-        @POST("/score")
-        fun getScore(@Body request: ScoreRequest): Call<ScoreResponse>
-    }
 
     interface ChangeScoreService {
         @POST("/editscore")
